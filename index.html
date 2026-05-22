@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code CLI로 나만의 프로그램 만들기 — Nimble Neuron AI 세미나</title>
+
+    <!-- Google Identity Services (OAuth2 token flow) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <!-- Fonts: Bricolage Grotesque (display) + Noto Sans KR (Korean body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=Noto+Sans+KR:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===========================================
+           CSS CUSTOM PROPERTIES (THEME)
+           Deep space dark with warm aurora accents
+           =========================================== */
+        :root {
+            /* Colors */
+            --bg-primary: #0b0e17;
+            --bg-secondary: #111827;
+            --bg-card: rgba(255, 255, 255, 0.04);
+            --bg-card-hover: rgba(255, 255, 255, 0.08);
+            --text-primary: #e8eaf0;
+            --text-secondary: #8b92a8;
+            --text-muted: #5a6178;
+            --accent-aurora: #7c6aff;
+            --accent-cyan: #38bdf8;
+            --accent-warm: #f472b6;
+            --accent-mint: #34d399;
+            --accent-amber: #fbbf24;
+            --gradient-main: linear-gradient(135deg, #7c6aff 0%, #38bdf8 50%, #34d399 100%);
+            --gradient-warm: linear-gradient(135deg, #f472b6 0%, #7c6aff 100%);
+            --gradient-bg: radial-gradient(ellipse at 20% 0%, rgba(124, 106, 255, 0.15) 0%, transparent 50%),
+                           radial-gradient(ellipse at 80% 100%, rgba(56, 189, 248, 0.1) 0%, transparent 50%),
+                           #0b0e17;
+
+            /* Typography — clamp for responsive */
+            --font-display: 'Bricolage Grotesque', sans-serif;
+            --font-body: 'Noto Sans KR', sans-serif;
+            --font-mono: 'Fira Code', monospace;
+            --title-size: clamp(1.8rem, 5.5vw, 4.2rem);
+            --h2-size: clamp(1.3rem, 3.8vw, 2.8rem);
+            --h3-size: clamp(1rem, 2.5vw, 1.6rem);
+            --body-size: clamp(0.8rem, 1.5vw, 1.15rem);
+            --small-size: clamp(0.65rem, 1vw, 0.875rem);
+            --mono-size: clamp(0.7rem, 1.2vw, 0.95rem);
+
+            /* Spacing */
+            --slide-padding: clamp(1.5rem, 5vw, 5rem);
+            --content-gap: clamp(0.75rem, 2.5vw, 2.5rem);
+            --element-gap: clamp(0.3rem, 1vw, 1rem);
+
+            /* Animation */
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --duration-normal: 0.7s;
+            --duration-fast: 0.4s;
+        }
+
+        /* ===========================================
+           RESET & BASE
+           =========================================== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* ===========================================
+           VIEWPORT FITTING: MANDATORY BASE STYLES
+           =========================================== */
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+        }
+        html {
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-height: 100%;
+            overflow: hidden;
+            padding: var(--slide-padding);
+        }
+        .card, .container, .content-box {
+            max-width: min(90vw, 1000px);
+            max-height: min(80vh, 700px);
+        }
+        .feature-list, .bullet-list {
+            gap: clamp(0.4rem, 1vh, 1rem);
+        }
+        .feature-list li, .bullet-list li {
+            font-size: var(--body-size);
+            line-height: 1.4;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+            gap: clamp(0.5rem, 1.5vw, 1rem);
+        }
+        img, .image-container {
+            max-width: 100%;
+            max-height: min(50vh, 400px);
+            object-fit: contain;
+        }
+
+        /* Short viewports */
+        @media (max-height: 700px) {
+            :root {
+                --slide-padding: clamp(0.75rem, 3vw, 2rem);
+                --content-gap: clamp(0.4rem, 1.5vw, 1rem);
+                --title-size: clamp(1.25rem, 4.5vw, 2.5rem);
+                --h2-size: clamp(1rem, 3vw, 1.75rem);
+            }
+        }
+        @media (max-height: 600px) {
+            :root {
+                --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem);
+                --content-gap: clamp(0.3rem, 1vw, 0.75rem);
+                --title-size: clamp(1.1rem, 4vw, 2rem);
+                --body-size: clamp(0.7rem, 1.2vw, 0.95rem);
+            }
+            .nav-dots, .keyboard-hint, .decorative {
+                display: none;
+            }
+        }
+        @media (max-height: 500px) {
+            :root {
+                --slide-padding: clamp(0.4rem, 2vw, 1rem);
+                --title-size: clamp(1rem, 3.5vw, 1.5rem);
+                --h2-size: clamp(0.9rem, 2.5vw, 1.25rem);
+                --body-size: clamp(0.65rem, 1vw, 0.85rem);
+            }
+        }
+        @media (max-width: 600px) {
+            :root {
+                --title-size: clamp(1.25rem, 7vw, 2.5rem);
+            }
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.2s !important;
+            }
+            html {
+                scroll-behavior: auto;
+            }
+        }
+
+        /* ===========================================
+           GLOBAL STYLES
+           =========================================== */
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ===========================================
+           SLIDE BACKGROUNDS & DECORATIVE ELEMENTS
+           =========================================== */
+        .slide {
+            background: var(--gradient-bg);
+        }
+
+        /* Subtle grid pattern overlay */
+        .slide::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: clamp(30px, 4vw, 60px) clamp(30px, 4vw, 60px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .slide-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===========================================
+           TYPOGRAPHY
+           =========================================== */
+        h1 {
+            font-family: var(--font-display);
+            font-size: var(--title-size);
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            font-family: var(--font-display);
+            font-size: var(--h2-size);
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.01em;
+            margin-bottom: var(--content-gap);
+        }
+
+        h3 {
+            font-family: var(--font-display);
+            font-size: var(--h3-size);
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        p, li {
+            font-size: var(--body-size);
+            line-height: 1.65;
+            color: var(--text-secondary);
+            font-weight: 300;
+        }
+
+        /* Gradient text utility */
+        .gradient-text {
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .mono {
+            font-family: var(--font-mono);
+            font-size: var(--mono-size);
+        }
+
+        /* ===========================================
+           SLIDE NUMBER
+           =========================================== */
+        .slide-number {
+            position: absolute;
+            top: clamp(1rem, 3vw, 2rem);
+            right: clamp(1rem, 3vw, 2rem);
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--text-muted);
+            z-index: 2;
+        }
+
+        /* ===========================================
+           SECTION TAG
+           =========================================== */
+        .section-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: clamp(0.3rem, 0.5vw, 0.5rem);
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--accent-aurora);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: clamp(0.5rem, 1.5vw, 1.5rem);
+        }
+        .section-tag::before {
+            content: '';
+            width: clamp(16px, 2vw, 28px);
+            height: 2px;
+            background: var(--accent-aurora);
+            border-radius: 1px;
+        }
+
+        /* ===========================================
+           BULLET ITEMS
+           =========================================== */
+        .items {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.5rem, 1.5vh, 1.2rem);
+            list-style: none;
+        }
+
+        .items li {
+            display: flex;
+            align-items: flex-start;
+            gap: clamp(0.5rem, 1vw, 1rem);
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+        }
+
+        .items .icon {
+            flex-shrink: 0;
+            width: clamp(22px, 2.5vw, 32px);
+            height: clamp(22px, 2.5vw, 32px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: clamp(0.7rem, 1.2vw, 1rem);
+        }
+
+        .items .icon.purple { background: rgba(124, 106, 255, 0.15); }
+        .items .icon.cyan { background: rgba(56, 189, 248, 0.15); }
+        .items .icon.pink { background: rgba(244, 114, 182, 0.15); }
+        .items .icon.mint { background: rgba(52, 211, 153, 0.15); }
+        .items .icon.amber { background: rgba(251, 191, 36, 0.15); }
+
+        /* ===========================================
+           COMPARISON PANELS
+           =========================================== */
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(0.75rem, 2vw, 1.5rem);
+            margin-top: var(--content-gap);
+        }
+        @media (max-width: 700px) {
+            .compare-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .compare-panel {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: clamp(8px, 1.5vw, 16px);
+            padding: clamp(1rem, 2.5vw, 2rem);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .compare-panel.dim {
+            opacity: 0.65;
+        }
+
+        .compare-panel.highlight {
+            border-color: rgba(124, 106, 255, 0.3);
+            background: rgba(124, 106, 255, 0.06);
+        }
+
+        .compare-panel h3 {
+            margin-bottom: clamp(0.5rem, 1vh, 1rem);
+        }
+
+        .compare-panel .badge {
+            position: absolute;
+            top: clamp(0.75rem, 1.5vw, 1rem);
+            right: clamp(0.75rem, 1.5vw, 1rem);
+            font-family: var(--font-mono);
+            font-size: clamp(0.55rem, 0.8vw, 0.7rem);
+            padding: 3px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .badge.rec {
+            background: rgba(124, 106, 255, 0.2);
+            color: var(--accent-aurora);
+        }
+
+        .badge.old {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+        }
+
+        /* ===========================================
+           CODE BLOCK
+           =========================================== */
+        .code-block {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: clamp(6px, 1vw, 12px);
+            padding: clamp(0.75rem, 2vw, 1.5rem);
+            font-family: var(--font-mono);
+            font-size: var(--mono-size);
+            line-height: 1.7;
+            color: var(--text-secondary);
+            overflow: hidden;
+        }
+
+        .code-block .prompt {
+            color: var(--accent-mint);
+        }
+
+        .code-block .cmd {
+            color: var(--text-primary);
+        }
+
+        .code-block .comment {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* ===========================================
+           STEP CARDS
+           =========================================== */
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.4rem, 1vh, 0.8rem);
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: clamp(0.6rem, 1.2vw, 1rem);
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: clamp(6px, 1vw, 10px);
+            padding: clamp(0.5rem, 1.2vw, 0.9rem) clamp(0.75rem, 1.5vw, 1.2rem);
+        }
+
+        .step-num {
+            flex-shrink: 0;
+            width: clamp(24px, 2.5vw, 32px);
+            height: clamp(24px, 2.5vw, 32px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            font-weight: 700;
+            color: var(--bg-primary);
+        }
+
+        .step-num.n1 { background: var(--accent-aurora); }
+        .step-num.n2 { background: var(--accent-cyan); }
+        .step-num.n3 { background: var(--accent-mint); }
+        .step-num.n4 { background: var(--accent-warm); }
+        .step-num.n5 { background: var(--accent-amber); }
+
+        .step span {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+        }
+
+        .step .mono-inline {
+            font-family: var(--font-mono);
+            font-size: clamp(0.65rem, 1.1vw, 0.85rem);
+            background: rgba(124, 106, 255, 0.12);
+            color: var(--accent-aurora);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        /* ===========================================
+           FEATURE GRID (for 2x2 or 3x2 card layouts)
+           =========================================== */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: clamp(0.5rem, 1.5vw, 1rem);
+            margin-top: var(--content-gap);
+        }
+        @media (max-width: 600px) {
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: clamp(8px, 1.2vw, 14px);
+            padding: clamp(0.8rem, 1.8vw, 1.4rem);
+        }
+
+        .feature-card .feat-icon {
+            font-size: clamp(1.2rem, 2vw, 1.6rem);
+            margin-bottom: clamp(0.3rem, 0.6vw, 0.5rem);
+        }
+
+        .feature-card h3 {
+            font-size: clamp(0.85rem, 1.4vw, 1.1rem);
+            margin-bottom: clamp(0.2rem, 0.4vw, 0.3rem);
+        }
+
+        .feature-card p {
+            font-size: var(--small-size);
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* ===========================================
+           PROMPT EXAMPLE BOX
+           =========================================== */
+        .prompt-box {
+            background: rgba(124, 106, 255, 0.06);
+            border: 1px solid rgba(124, 106, 255, 0.2);
+            border-radius: clamp(8px, 1.2vw, 14px);
+            padding: clamp(0.8rem, 2vw, 1.5rem);
+            margin-top: clamp(0.5rem, 1vh, 1rem);
+        }
+
+        .prompt-box .label {
+            font-family: var(--font-mono);
+            font-size: clamp(0.55rem, 0.8vw, 0.7rem);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--accent-aurora);
+            margin-bottom: clamp(0.3rem, 0.6vw, 0.5rem);
+        }
+
+        .prompt-box .text {
+            font-size: var(--body-size);
+            color: var(--text-primary);
+            font-weight: 400;
+            line-height: 1.6;
+        }
+
+        /* BAD prompt box */
+        .prompt-box.bad {
+            background: rgba(239, 68, 68, 0.06);
+            border-color: rgba(239, 68, 68, 0.2);
+        }
+        .prompt-box.bad .label {
+            color: #ef4444;
+        }
+
+        /* GOOD prompt box */
+        .prompt-box.good {
+            background: rgba(52, 211, 153, 0.06);
+            border-color: rgba(52, 211, 153, 0.2);
+        }
+        .prompt-box.good .label {
+            color: var(--accent-mint);
+        }
+
+        /* ===========================================
+           CALLOUT / QUOTE
+           =========================================== */
+        .callout {
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-family: var(--font-display);
+            font-size: clamp(1.2rem, 3vw, 2.2rem);
+            font-weight: 700;
+            text-align: center;
+            padding: clamp(1rem, 3vw, 2rem) 0;
+            line-height: 1.4;
+        }
+
+        /* ===========================================
+           HIGHLIGHT STRIP
+           =========================================== */
+        .highlight-strip {
+            background: linear-gradient(90deg, rgba(124, 106, 255, 0.15) 0%, rgba(56, 189, 248, 0.1) 100%);
+            border-left: 3px solid var(--accent-aurora);
+            padding: clamp(0.6rem, 1.5vw, 1rem) clamp(0.8rem, 2vw, 1.5rem);
+            border-radius: 0 clamp(6px, 1vw, 10px) clamp(6px, 1vw, 10px) 0;
+            font-size: var(--body-size);
+            color: var(--text-primary);
+            margin-top: clamp(0.5rem, 1.5vh, 1.5rem);
+        }
+
+        /* ===========================================
+           ANIMATIONS
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .reveal:nth-child(1) { transition-delay: 0.05s; }
+        .reveal:nth-child(2) { transition-delay: 0.15s; }
+        .reveal:nth-child(3) { transition-delay: 0.25s; }
+        .reveal:nth-child(4) { transition-delay: 0.35s; }
+        .reveal:nth-child(5) { transition-delay: 0.45s; }
+        .reveal:nth-child(6) { transition-delay: 0.55s; }
+
+        .reveal-scale {
+            opacity: 0;
+            transform: scale(0.92);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+        .slide.visible .reveal-scale {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Floating aurora blobs */
+        @keyframes float-slow {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(15px, -20px) scale(1.05); }
+            66% { transform: translate(-10px, 10px) scale(0.95); }
+        }
+
+        .aurora-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.3;
+            animation: float-slow 12s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ===========================================
+           PROGRESS BAR
+           =========================================== */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: var(--gradient-main);
+            z-index: 9999;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        /* ===========================================
+           NAVIGATION DOTS
+           =========================================== */
+        .nav-dots {
+            position: fixed;
+            right: clamp(0.75rem, 1.5vw, 1.5rem);
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 9998;
+        }
+        .nav-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 0;
+        }
+        .nav-dot.active {
+            background: var(--accent-aurora);
+            box-shadow: 0 0 8px rgba(124, 106, 255, 0.5);
+            transform: scale(1.3);
+        }
+
+        /* ===========================================
+           KEYBOARD HINT
+           =========================================== */
+        .keyboard-hint {
+            position: fixed;
+            bottom: clamp(0.75rem, 1.5vw, 1.5rem);
+            right: clamp(0.75rem, 2vw, 2rem);
+            font-family: var(--font-mono);
+            font-size: clamp(0.5rem, 0.7vw, 0.65rem);
+            color: var(--text-muted);
+            z-index: 9998;
+            opacity: 0.5;
+        }
+        .keyboard-hint kbd {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-family: var(--font-mono);
+            font-size: inherit;
+        }
+
+        /* ===========================================
+           TITLE SLIDE SPECIFICS
+           =========================================== */
+        .title-slide .slide-content {
+            align-items: center;
+            text-align: center;
+        }
+
+        .title-slide h1 {
+            max-width: min(90vw, 800px);
+        }
+
+        .title-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--accent-aurora);
+            background: rgba(124, 106, 255, 0.1);
+            border: 1px solid rgba(124, 106, 255, 0.2);
+            border-radius: 20px;
+            padding: clamp(4px, 0.5vw, 6px) clamp(10px, 1.5vw, 16px);
+            margin-bottom: clamp(0.75rem, 2vw, 1.5rem);
+        }
+
+        .title-sub {
+            font-size: clamp(0.85rem, 1.8vw, 1.2rem);
+            color: var(--text-muted);
+            margin-top: clamp(0.5rem, 1.5vw, 1rem);
+            font-weight: 300;
+        }
+
+        /* ===========================================
+           END SLIDE
+           =========================================== */
+        .end-slide .slide-content {
+            align-items: center;
+            text-align: center;
+        }
+
+        /* ===========================================
+           ROAD MAP (for future slides)
+           =========================================== */
+        .roadmap {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.4rem, 1vh, 0.8rem);
+            margin-top: var(--content-gap);
+        }
+
+        .roadmap-item {
+            display: flex;
+            align-items: center;
+            gap: clamp(0.6rem, 1.2vw, 1rem);
+            padding: clamp(0.5rem, 1.2vw, 0.9rem) clamp(0.75rem, 1.5vw, 1.2rem);
+            border-radius: clamp(6px, 1vw, 10px);
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .roadmap-item.current {
+            border-color: rgba(124, 106, 255, 0.3);
+            background: rgba(124, 106, 255, 0.08);
+        }
+
+        .roadmap-level {
+            flex-shrink: 0;
+            font-family: var(--font-mono);
+            font-size: clamp(0.55rem, 0.8vw, 0.7rem);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+        .roadmap-level.beginner { background: rgba(52, 211, 153, 0.15); color: var(--accent-mint); }
+        .roadmap-level.intermediate { background: rgba(56, 189, 248, 0.15); color: var(--accent-cyan); }
+        .roadmap-level.advanced { background: rgba(244, 114, 182, 0.15); color: var(--accent-warm); }
+
+        .roadmap-item span {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+        }
+
+        /* ===========================================
+           WARNING ITEMS
+           =========================================== */
+        .warning-items {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.5rem, 1.2vh, 0.9rem);
+            list-style: none;
+        }
+
+        .warning-items li {
+            display: flex;
+            align-items: flex-start;
+            gap: clamp(0.5rem, 1vw, 0.8rem);
+            padding: clamp(0.5rem, 1.2vw, 0.9rem) clamp(0.75rem, 1.5vw, 1.2rem);
+            background: rgba(251, 191, 36, 0.04);
+            border: 1px solid rgba(251, 191, 36, 0.1);
+            border-radius: clamp(6px, 1vw, 10px);
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+        }
+
+        .warning-items li .w-icon {
+            flex-shrink: 0;
+            font-size: clamp(0.9rem, 1.3vw, 1.1rem);
+        }
+        /* ===========================================
+           AUTH GATE — Google SSO Login Screen
+           =========================================== */
+        .auth-gate {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: var(--gradient-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(1rem, 3vw, 2rem);
+        }
+        .auth-gate::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: clamp(30px, 4vw, 60px) clamp(30px, 4vw, 60px);
+            pointer-events: none;
+        }
+        .auth-gate.hidden { display: none; }
+        .auth-gate h1 {
+            font-family: var(--font-display);
+            font-size: clamp(1.4rem, 4vw, 2.8rem);
+            font-weight: 800;
+            text-align: center;
+            position: relative;
+        }
+        .auth-gate .auth-sub {
+            font-size: var(--body-size);
+            color: var(--text-muted);
+            text-align: center;
+            position: relative;
+        }
+        .auth-gate .auth-btn-wrap {
+            position: relative;
+            margin-top: clamp(0.5rem, 1.5vw, 1rem);
+        }
+        .auth-gate .google-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: #fff;
+            color: #1a1a1a;
+            border: none;
+            border-radius: 24px;
+            padding: clamp(10px, 1.5vw, 14px) clamp(20px, 3vw, 32px);
+            font-family: var(--font-body);
+            font-size: clamp(0.85rem, 1.3vw, 1rem);
+            font-weight: 500;
+            cursor: pointer;
+            transition: box-shadow 0.2s ease, transform 0.15s ease;
+        }
+        .auth-gate .google-btn:hover {
+            box-shadow: 0 4px 20px rgba(255,255,255,0.15);
+            transform: translateY(-1px);
+        }
+        .auth-gate .google-btn svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+        .auth-gate .auth-error {
+            font-size: var(--small-size);
+            color: #ef4444;
+            position: relative;
+            display: none;
+        }
+        .auth-gate .auth-error.show { display: block; }
+
+        /* Hide presentation content until authenticated */
+        .app-content { display: none; }
+        .app-content.authed { display: block; }
+    </style>
+</head>
+<body>
+    <!-- ===========================================
+         AUTH GATE — Blocks content until Google SSO
+         =========================================== -->
+    <div class="auth-gate" id="authGate">
+        <div class="aurora-blob" style="width: 350px; height: 350px; background: rgba(124,106,255,0.2); top: 15%; left: 10%; animation-delay: 0s;"></div>
+        <div class="aurora-blob" style="width: 280px; height: 280px; background: rgba(56,189,248,0.15); bottom: 20%; right: 10%; animation-delay: -5s;"></div>
+
+        <h1><span class="gradient-text">Nimble Neuron</span> AI Seminar</h1>
+        <p class="auth-sub">@nimbleneuron.com 계정으로 로그인해주세요</p>
+        <div class="auth-btn-wrap">
+            <button class="google-btn" id="googleSignInBtn" onclick="startGoogleLogin()">
+                <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Google로 로그인
+            </button>
+        </div>
+        <p class="auth-error" id="authError">@nimbleneuron.com 계정만 접근할 수 있습니다.</p>
+    </div>
+
+    <!-- ===========================================
+         PRESENTATION CONTENT (hidden until auth)
+         =========================================== -->
+    <div class="app-content" id="appContent">
+
+    <!-- Progress bar -->
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- Navigation dots (generated by JS) -->
+    <nav class="nav-dots" id="navDots" aria-label="Slide navigation"></nav>
+
+    <!-- Keyboard hint -->
+    <div class="keyboard-hint decorative">
+        <kbd>&larr;</kbd> <kbd>&rarr;</kbd> or <kbd>Space</kbd> to navigate
+    </div>
+
+    <!-- ===========================================
+         SLIDE 1: TITLE
+         =========================================== -->
+    <section class="slide title-slide" aria-label="Title">
+        <!-- Aurora decorative blobs -->
+        <div class="aurora-blob" style="width: 400px; height: 400px; background: rgba(124,106,255,0.25); top: -10%; left: -5%; animation-delay: 0s;"></div>
+        <div class="aurora-blob" style="width: 300px; height: 300px; background: rgba(56,189,248,0.2); bottom: -5%; right: -3%; animation-delay: -4s;"></div>
+
+        <div class="slide-content">
+            <div class="title-badge reveal">
+                <span>Nimble Neuron AI Seminar</span>
+            </div>
+            <h1 class="reveal">Claude Code CLI로<br><span class="gradient-text">나만의 프로그램</span> 만들기</h1>
+            <p class="title-sub reveal">코딩을 모르는 분들을 위한 비기너 가이드</p>
+        </div>
+        <span class="slide-number">01 / 16</span>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 2: TODAY'S GOAL
+         =========================================== -->
+    <section class="slide" aria-label="오늘의 목표">
+        <div class="slide-content">
+            <div class="section-tag reveal">Goal</div>
+            <h2 class="reveal">오늘의 목표</h2>
+
+            <ul class="items">
+                <li class="reveal">
+                    <span class="icon purple">1</span>
+                    <span>Claude Code CLI가 뭔지 이해하고 설치하기</span>
+                </li>
+                <li class="reveal">
+                    <span class="icon cyan">2</span>
+                    <span>발표자료를 직접 만들어보기</span>
+                </li>
+                <li class="reveal">
+                    <span class="icon mint">3</span>
+                    <span>웹앱을 만들어서 Coolify로 배포하기</span>
+                </li>
+            </ul>
+
+            <div class="highlight-strip reveal">
+                코딩 경험이 전혀 없어도 됩니다. 한국어로 말하면 Claude가 알아서 해줍니다.
+            </div>
+        </div>
+        <span class="slide-number">02 / 16</span>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 3: WHY CLI — CHATBOT VS CLI
+         =========================================== -->
+    <section class="slide" aria-label="왜 CLI인가">
+        <div class="slide-content">
+            <div class="section-tag reveal">Why CLI</div>
+            <h2 class="reveal">챗봇 vs CLI</h2>
+
+            <div class="compare-grid">
+                <div class="compare-panel dim reveal-scale">
+                    <span class="badge old">기존 방식</span>
+                    <h3>챗봇</h3>
+                    <ul class="items" style="margin-top: clamp(0.4rem, 0.8vh, 0.6rem);">
+                        <li><span class="icon amber">&#x1F4AC;</span><span>대화만 가능</span></li>
+                        <li><span class="icon amber">&#x1F4CB;</span><span>복사-붙여넣기 필요</span></li>
+                        <li><span class="icon amber">&#x1F512;</span><span>내 파일에 접근 불가</span></li>
+                    </ul>
+                </div>
+                <div class="compare-panel highlight reveal-scale">
+                    <span class="badge rec">추천</span>
+                    <h3 class="gradient-text">CLI</h3>
+                    <ul class="items" style="margin-top: clamp(0.4rem, 0.8vh, 0.6rem);">
+                        <li><span class="icon purple">&#x1F4BB;</span><span>내 컴퓨터에서 직접 실행</span></li>
+                        <li><span class="icon cyan">&#x1F4C1;</span><span>파일 자동 생성/수정</span></li>
+                        <li><span class="icon mint">&#x1F9E0;</span><span>프로젝트 전체를 이해</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="callout reveal" style="margin-top: clamp(0.5rem, 1.5vh, 1rem);">
+                "챗봇은 레시피를 알려주는 셰프,<br>CLI는 직접 요리해주는 셰프"
+            </div>
+        </div>
+        <span class="slide-number">03 / 16</span>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 4: ACCOUNT INFO
+         =========================================== -->
+    <section class="slide" aria-label="계정 안내">
+        <div class="slide-content">
+            <div class="section-tag reveal">Account</div>
+            <h2 class="reveal">계정 발급 안내</h2>
+
+            <ul class="items">
+                <li class="reveal">
+                    <span class="icon purple">&#x1F465;</span>
+                    <span><strong style="color:var(--text-primary)">팀 계정 발급</strong> &mdash; 전 직원 희망 시 발급 가능</span>
+                </li>
+                <li class="reveal">
+                    <span class="icon cyan">&#x26A1;</span>
+                    <span><strong style="color:var(--text-primary)">프리미엄 업그레이드</strong> &mdash; 토큰 부족 시 신청하면 추가 발급</span>
+                </li>
+                <li class="reveal">
+                    <span class="icon mint">&#x1F4B0;</span>
+                    <span><strong style="color:var(--text-primary)">토큰이란?</strong> &mdash; AI에게 일을 시키는 데 사용하는 크레딧. 무한하지 않으니 아껴 쓰세요</span>
+                </li>
+            </ul>
+
+            <div class="highlight-strip reveal" style="border-left-color: var(--accent-mint); background: linear-gradient(90deg, rgba(52,211,153,0.1) 0%, rgba(124,106,255,0.05) 100%);">
+                &#x1F44D; 회사 계정으로 개인 작업물을 만들어도 무방합니다. 오히려 다양하게 많이 써보면서 CLI에 익숙해지세요!
+            </div>
+
+            <div class="highlight-strip reveal" style="margin-top: clamp(0.3rem, 0.8vh, 0.5rem); border-left-color: var(--accent-warm); background: linear-gradient(90deg, rgba(244,114,182,0.1) 0%, rgba(124,106,255,0.05) 100%);">
+                &#x26A0;&#xFE0F; 단, 사내 기밀 데이터나 개인정보를 프롬프트에 넣지는 마세요
+            </div>
+        </div>
+        <span class="slide-number">04 / 16</span>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 5: SETUP GUIDE
+         =========================================== -->
+    <section class="slide" aria-label="환경 세팅">
+        <div class="slide-content">
+            <div class="section-tag reveal">Setup</div>
+            <h2 class="reveal">환경 세팅 가이드</h2>
+
+            <div class="prompt-box reveal" style="margin-bottom: clamp(0.5rem, 1.5vh, 1rem);">
+                <div class="label">Claude 챗봇에게 물어보세요</div>
+                <div class="text">"Windows PowerShell에서 Claude Code CLI를 설치하고 싶어"</div>
+            </div>
+
+            <div class="steps">
+                <div class="step reveal">
+                    <span class="step-num n1">1</span>
+                    <span>PowerShell 열기</span>
+                </div>
+                <div class="step reveal">
+                    <span class="step-num n2">2</span>
+                    <span>Node.js 설치 &mdash; <a href="https://nodejs.org" style="color:var(--accent-cyan); text-decoration:none;">nodejs.org</a>에서 LTS 버전 다운로드</span>
+                </div>
+                <div class="step reveal">
+                    <span class="step-num n3">3</span>
+                    <span>설치 명령어 실행 <span class="mono-inline">irm https://claude.ai/install.ps1 | iex</span></span>
+                </div>
+                <div class="step reveal">
+                    <span class="step-num n4">4</span>
+                    <span>로그인 및 인증</span>
+                </div>
+                <div class="step reveal">
+                    <span class="step-num n5">5</span>
+                    <span>첫 실행 <span class="mono-inline">claude</span></span>
+                </div>
+            </div>
+
+            <div class="highlight-strip reveal">
+                에러가 나면? &rarr; 에러 메시지를 복사해서 챗봇에 붙여넣기 &rarr; 해결!
+            </div>
+        </div>
+        <span class="slide-number">05 / 16</span>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 6: SUPERPOWERS — VIBE CODING BEST PRACTICES
+         =========================================== -->
+    <section class="slide" aria-label="Superpowers">
+        <div class="aurora-blob" style="width: 280px; height: 280px; background: rgba(244,114,182,0.18); top: 5%; right: -5%; animation-delay: -3s;"></div>
+
+        <div class="slide-content">
+            <div class="section-tag reveal">Superpowers</div>
+            <h2 class="reveal">바이브 코딩의 <span class="gradient-text">노하우 집대성</span></h2>
+
+            <p class="reveal" style="margin-bottom: var(--content-gap); color: var(--text-secondary);">
+                전 세계 개발자들이 AI와 협업하며 찾아낸 베스트 프랙티스를 모은 스킬 팩입니다.<br>
+                설치하면 Claude가 더 똑똑하게 일합니다.
+            </p>
+
+            <div class="feature-grid">
+                <div class="feature-card reveal-scale">
+                    <div class="feat-icon">&#x1F9EA;</div>
+                    <h3>TDD (테스트 먼저)</h3>
+                    <p>"이런 결과가 나와야 해"를 먼저 정해놓고 만듦 &rarr; 엉뚱한 결과 방지</p>
+                </div>
+                <div class="feature-card reveal-scale">
+                    <div class="feat-icon">&#x1F41B;</div>
+                    <h3>디버깅 패턴</h3>
+                    <p>에러가 나면 체계적으로 원인을 추적 &rarr; 삽질 시간 감소</p>
+                </div>
+                <div class="feature-card reveal-scale">
+                    <div class="feat-icon">&#x2753;</div>
+                    <h3>되묻기 (Clarify)</h3>
+                    <p>모호한 요청은 먼저 확인 &rarr; 의도와 다른 결과 방지</p>
+                </div>
+                <div class="feature-card reveal-scale">
+                    <div class="feat-icon">&#x1F4DD;</div>
+                    <h3>계획 수립</h3>
+                    <p>큰 작업은 단계별 계획을 세운 뒤 실행 &rarr; 체계적 진행</p>
+                </div>
+            </div>
+
+            <div class="highlight-strip reveal">
+                여러분이 이걸 직접 할 필요는 없습니다. Superpowers가 Claude에게 이런 습관을 심어줍니다.
+            </div>
+        </div>
+        <span class="slide-number">06 / 16</span>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 7: CONNECTOR SETUP
+         =========================================== -->
+    <section class="slide" aria-label="커넥터 설정">
+        <div class="slide-content">
+            <div class="section-tag reveal">Connectors</div>
+            <h2 class="reveal">커넥터 설정 &mdash; <span class="gradient-text">외부 데이터 연결</span></h2>
+
+            <p class="reveal" style="margin-bottom: var(--content-gap); color: var(--text-secondary);">
+                사내 계정으로 로그인하면 기본 커넥터가 함께 제공됩니다.<br>
+                Claude가 외부 서비스의 데이터를 직접 읽고 활용할 수 있습니다.
+            </p>
+
+            <div class="feature-grid">
+                <div class="feature-card reveal-scale">
+                    <div class="feat-icon">&#x1F4BE;</div>
+                    <h3>Google Drive</h3>
+                    <p>문서, 스프레드시트, 프레젠테이션 읽기</p>
+                </div>
+                <div class="feature-card reveal-scale">
+                    <div class="feat-icon">&#x1F4E7;</div>
+                    <h3>Gmail</h3>
+                    <p>메일 검색, 스레드 읽기, 초안 작성</p>
+                </div>
+                <div class="feature-card reveal-scale">
+                    <div class="feat-icon">&#x1F4C5;</div>
+                    <h3>Google Calendar</h3>
+                    <p>일정 조회, 빈 시간 찾기</p>
+                </div>
+                <div class="feature-card reveal-scale" style="border-color: rgba(124, 106, 255, 0.25); background: rgba(124, 106, 255, 0.06);">
+                    <div class="feat-icon">&#x1F4D6;</div>
+                    <h3>Confluence</h3>
+                    <p>위키 페이지 검색, 패치노트 등 사내 문서 접근</p>
+                </div>
+            </div>
+
+            <div class="highlight-strip reveal">
+                &#x1F517; 설정 방법: Claude 실행 후 커넥터 연결 안내가 나옵니다. 로그인만 하면 바로 사용 가능!
+            </div>
+        </div>
+        <span class="slide-number">07 / 16</span>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 8: BASIC USAGE
+         =========================================== -->
+    <section class="slide" aria-label="기본 사용법">
+        <div class="slide-content">
+            <div class="section-tag reveal">Basics</div>
+            <h2 class="reveal">처음 써보기</h2>
+
+            <div class="code-block reveal">
+                <span class="prompt">$</span> <span class="cmd">claude</span><br>
+                <br>
+                <span class="comment"># 한국어로 자연스럽게 요청하면 됩니다</span><br>
+                <br>
+                <span class="prompt">&gt;</span> <span class="cmd">index.html 파일을 만들어줘.</span><br>
+                <span class="prompt">&gt;</span> <span class="cmd">내 자기소개 페이지로 만들어줘.</span><br>
+                <span class="prompt">&gt;</span> <span class="cmd">이름은 홍길동이고, QA팀이야.</span>
+            </div>
+
+            <ul class="items" style="margin-top: clamp(0.5rem, 1.5vh, 1rem);">
+                <li class="reveal">
+                    <span class="icon purple">&#x2728;</span>
+                    <span>Claude가 파일을 만들고, 수정하고, 실행까지 알아서 합니다</span>
+                </li>
+                <li class="reveal">
+                    <span class="icon cyan">&#x1F30F;</span>
+                    <span>영어를 몰라도 됩니다 &mdash; 한국어가 잘 통합니다</span>
+                </li>
+            </ul>
+        </div>
+        <span class="slide-number">08 / 16</span>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 9: HANDS-ON 1 — CONFLUENCE SEARCH
+         =========================================== -->
+    <section class="slide" aria-label="실습 1">
+        <div class="aurora-blob" style="width: 250px; height: 250px; background: rgba(244,114,182,0.2); bottom: 10%; left: -3%; animation-delay: -6s;"></div>
+
+        <div class="slide-content">
+            <div class="section-tag reveal">Hands-On 1</div>
+            <h2 class="reveal">Confluence <span class="gradient-text">패치노트 분석</span></h2>
+
+            <div class="prompt-box good reveal">
+                <div class="label">Demo &mdash; Confluence 커넥터 활용</div>
+                <div class="text">
+                    "Confluence 패치노트에서 '비형', '코렐라인', '펜리르'가<br>
+                    각각 몇 번 언급됐는지 찾아서 비교해줘."
+                </div>
+            </div>
+
+            <ul class="items" style="margin-top: clamp(0.5rem, 1.5vh, 1rem);">
+                <li class="reveal">
+                    <span class="icon purple">&#x1F50D;</span>
+                    <span>Claude가 Confluence 커넥터로 패치노트 페이지를 검색</span>
+                </li>
+                <li class="reveal">
+                    <span class="icon cyan">&#x1F4CA;</span>
+                    <span>키워드별 언급 횟수를 자동 집계 &rarr; 비교 결과 정리</span>
+                </li>
+                <li class="reveal">
+                    <span class="icon mint">&#x2728;</span>
+                    <span>결과를 HTML 차트로 시각화해달라고 추가 요청도 가능</span>
+                </li>
+            </ul>
+
+            <div class="highlight-strip reveal">
+                &#x1F449; 이 발표자료도 Claude Code로 만들었습니다 &mdash; 완성 후 Pages에 바로 등록 가능
+            </div>
+        </div>
+        <span class="slide-number">09 / 16</span>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 10: CLAUDE EXECUTION OPTIONS
+         =========================================== -->
+    <section class="slide" aria-label="실행 옵션">
+        <div class="slide-content">
+            <div class="section-tag reveal">Options</div>
+            <h2 class="reveal">Claude <span class="gradient-text">실행 옵션</span> 알아두기</h2>
+
+            <div class="steps">
+                <div class="step reveal">
+                    <span class="step-num n1">1</span>
+                    <span><span class="mono-inline">claude --resume</span> &mdash; 이전 대화를 이어서 계속 작업. 터미널을 닫았다 켜도 OK</span>
+                </div>
+                <div class="step reveal">
+                    <span class="step-num n2">2</span>
+                    <span><span class="mono-inline">claude --dangerously-skip-permissions</span> &mdash; 매번 승인 안 눌러도 됨 (자동 실행)</span>
+                </div>
+                <div class="step reveal">
+                    <span class="step-num n3">3</span>
+                    <span><span class="mono-inline">claude --dangerously-skip-permissions --resume</span> &mdash; 둘 다 합치면 가장 편한 작업 모드</span>
+                </div>
+                <div class="step reveal">
+                    <span class="step-num n4">4</span>
+                    <span><span class="mono-inline">/model</span> &mdash; 실행 중 모델 변경. <span class="mono-inline">opus</span> 최신 모델로 맞추면 최고 성능</span>
+                </div>
+            </div>
+
+            <div class="code-block reveal" style="margin-top: clamp(0.5rem, 1.5vh, 1rem); font-size: var(--small-size); line-height: 1.8;">
+                <span class="comment"># 실전에서 가장 많이 쓰는 조합</span><br>
+                <span class="prompt">$</span> <span class="cmd">claude --dangerously-skip-permissions --resume</span><br>
+                <br>
+                <span class="comment"># 실행 후 모델을 opus로 변경</span><br>
+                <span class="prompt">&gt;</span> <span class="cmd">/model</span> <span style="color:var(--accent-cyan)">opus</span>
+            </div>
+
+            <div class="highlight-strip reveal">
+                &#x1F4A1; 생산성을 위해 <strong style="color:var(--text-primary)">--dangerously-skip-permissions</strong>는 항상 켜두길 권장합니다. 진짜 위험한 건 옵션을 켜둬도 물어봐요.
+            </div>
+        </div>
+        <span class="slide-number">10 / 16</span>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 11: HANDS-ON 2 — WEB APP + COOLIFY
+         =========================================== -->
+    <section class="slide" aria-label="실습 2">
+        <div class="slide-content">
+            <div class="section-tag reveal">Hands-On 2</div>
+            <h2 class="reveal">웹앱 만들고 <span class="gradient-text">Coolify로 배포</span></h2>
+
+            <div class="prompt-box good reveal">
+                <div class="label">Demo &mdash; 점심 메뉴 룰렛</div>
+                <div class="text">
+                    "점심 메뉴 랜덤 추천 웹앱을 만들어줘.<br>
+                    룰렛 휠이 돌아가는 애니메이션이 있으면 좋겠어.<br>
+                    메뉴를 추가/삭제할 수 있게 해줘."
+                </div>
+            </div>
+
+            <div class="steps" style="margin-top: clamp(0.5rem, 1.5vh, 1rem);">
+                <div class="step reveal">
+                    <span class="step-num n1">1</span>
+                    <span>Claude Code가 웹앱 생성 &rarr; 로컬 브라우저에서 확인</span>
+                </div>
+                <div class="step reveal">
+                    <span class="step-num n2">2</span>
+                    <span><span class="mono-inline">nimbleneuron-sandbox</span> GitHub에 푸시</span>
+                </div>
+                <div class="step reveal">
+                    <span class="step-num n3">3</span>
+                    <span><span class="mono-inline">/사내배포</span> 스킬로 Coolify 배포</span>
+                </div>
+                <div class="step reveal">
+                    <span class="step-num n4">4</span>
+                    <span><span class="mono-inline">lunch-roulette.nimbleneuron.dev</span> 로 접속!</span>
+                </div>
+            </div>
+
+            <div class="highlight-strip reveal">
+                코딩 없이 만든 웹앱이 실제 사내 URL로 동작합니다
+            </div>
+        </div>
+        <span class="slide-number">11 / 16</span>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 12: SAVE YOUR WORK — GITHUB
+         =========================================== -->
+    <section class="slide" aria-label="GitHub 세이브">
+        <div class="aurora-blob" style="width: 260px; height: 260px; background: rgba(52,211,153,0.18); top: 8%; right: -4%; animation-delay: -5s;"></div>
+
+        <div class="slide-content">
+            <div class="section-tag reveal">Save</div>
+            <h2 class="reveal">잠깐, <span class="gradient-text">세이브</span> 하셨나요?</h2>
+
+            <p class="reveal" style="margin-bottom: var(--content-gap); color: var(--text-secondary);">
+                만든 코드를 GitHub에 올려두면 어디서든 다시 쓸 수 있습니다. 게임으로 치면 세이브 포인트!
+            </p>
+
+            <div class="steps">
+                <div class="step reveal">
+                    <span class="step-num n1">1</span>
+                    <span><a href="https://github.com" style="color:var(--accent-cyan); text-decoration:none;">github.com</a> 가입 &mdash; 무료 계정이면 충분</span>
+                </div>
+                <div class="step reveal">
+                    <span class="step-num n2">2</span>
+                    <span>새 저장소(repository) 만들기 &mdash; <strong style="color:var(--accent-warm)">Private</strong>으로 설정</span>
+                </div>
+                <div class="step reveal">
+                    <span class="step-num n3">3</span>
+                    <span>Claude에게 한마디: <span class="mono-inline">"내 코드를 GitHub에 올려줘"</span></span>
+                </div>
+            </div>
+
+            <div class="code-block reveal" style="margin-top: clamp(0.5rem, 1.5vh, 1rem); font-size: var(--small-size); line-height: 1.8;">
+                <span class="comment"># Claude에게 이렇게 말하면 끝</span><br>
+                <span class="prompt">&gt;</span> <span class="cmd">이 프로젝트를 GitHub에 올려줘. private repo로 만들어줘.</span><br>
+                <br>
+                <span class="comment"># Claude가 알아서: git init → repo 생성 → push</span><br>
+                <span style="color:var(--accent-mint)">✓</span> <span style="color:var(--text-muted)">Repository created · Code pushed to GitHub</span>
+            </div>
+
+            <div class="highlight-strip reveal">
+                &#x1F512; Private = 나만 볼 수 있음. 회사 프로젝트는 반드시 Private 또는 <span class="mono-inline" style="font-size:var(--small-size)">nimbleneuron-sandbox</span> org에 올리세요.
+            </div>
+        </div>
+        <span class="slide-number">12 / 16</span>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 13: DEPLOYMENT PATHS
+         =========================================== -->
+    <section class="slide" aria-label="배포 경로">
+        <div class="slide-content">
+            <div class="section-tag reveal">Deploy</div>
+            <h2 class="reveal">만든 것을 어디에 쓸까?</h2>
+
+            <div class="compare-grid">
+                <div class="compare-panel highlight reveal-scale">
+                    <span class="badge rec">정적 콘텐츠</span>
+                    <h3>사내 Pages</h3>
+                    <ul class="items" style="margin-top: clamp(0.4rem, 0.8vh, 0.6rem);">
+                        <li><span class="icon purple">&#x1F4DD;</span><span>HTML 문서, 보고서, 발표자료</span></li>
+                        <li><span class="icon cyan">&#x1F3A8;</span><span>포트폴리오, 팀 소개 페이지</span></li>
+                        <li><span class="icon mint">&#x2705;</span><span>Claude에게 "Pages에 올려줘" 하면 끝</span></li>
+                    </ul>
+                </div>
+                <div class="compare-panel highlight reveal-scale">
+                    <span class="badge rec">웹앱</span>
+                    <h3>사내 Coolify</h3>
+                    <ul class="items" style="margin-top: clamp(0.4rem, 0.8vh, 0.6rem);">
+                        <li><span class="icon purple">&#x1F4BB;</span><span>인터랙티브 도구, 대시보드</span></li>
+                        <li><span class="icon cyan">&#x1F310;</span><span>your-app.nimbleneuron.dev</span></li>
+                        <li><span class="icon mint">&#x1F504;</span><span>GitHub 머지 &rarr; 자동 배포</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="code-block reveal" style="margin-top: clamp(0.5rem, 1.5vh, 1rem); font-size: var(--small-size); line-height: 1.8;">
+                <span class="comment"># Pages 등록 — Claude에게 링크 주고 시키면 끝</span><br>
+                <span class="prompt">&gt;</span> <span class="cmd">이 파일을 사내 Pages에 올려줘</span><br>
+                <span class="prompt">&gt;</span> <span class="cmd" style="color:var(--accent-cyan)">https://github.com/nimbleneuron-sandbox/pages.git</span><br>
+                <br>
+                <span class="comment"># 웹앱 배포 — Coolify 흐름</span><br>
+                <span class="prompt">Local</span> <span class="cmd">&rarr;</span> <span class="prompt" style="color:var(--accent-cyan)">nimbleneuron-sandbox/your-repo</span> <span class="cmd">&rarr;</span> <span class="prompt" style="color:var(--accent-mint)">Coolify</span> <span class="cmd">&rarr;</span> <span class="prompt" style="color:var(--accent-amber)">*.nimbleneuron.dev</span>
+            </div>
+        </div>
+        <span class="slide-number">13 / 16</span>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 14: CAUTIONS & TIPS
+         =========================================== -->
+    <section class="slide" aria-label="주의사항">
+        <div class="slide-content">
+            <div class="section-tag reveal">Caution</div>
+            <h2 class="reveal">주의사항 &amp; 팁</h2>
+
+            <ul class="warning-items">
+                <li class="reveal">
+                    <span class="w-icon">&#x1F510;</span>
+                    <span><strong style="color:var(--text-primary)">시크릿은 코드에 넣지 않기</strong> &mdash; API 키, 비밀번호는 환경변수로 분리</span>
+                </li>
+                <li class="reveal">
+                    <span class="w-icon">&#x26A0;&#xFE0F;</span>
+                    <span><strong style="color:var(--text-primary)">위험한 명령어 주의</strong> &mdash; <span style="font-family:var(--font-mono);font-size:var(--small-size);color:var(--accent-warm)">rm -rf</span>, <span style="font-family:var(--font-mono);font-size:var(--small-size);color:var(--accent-warm)">force push</span> 등은 한 글자씩 읽고 승인</span>
+                </li>
+                <li class="reveal">
+                    <span class="w-icon">&#x1F4B0;</span>
+                    <span><strong style="color:var(--text-primary)">LLM 토큰은 회사 카드</strong> &mdash; 무한하지 않으니 구체적으로 요청하고, 반복 호출 주의</span>
+                </li>
+                <li class="reveal">
+                    <span class="w-icon">&#x1F91D;</span>
+                    <span><strong style="color:var(--text-primary)">막히면 즉시 질문</strong> &mdash; Slack <span style="font-family:var(--font-mono);font-size:var(--small-size);color:var(--accent-cyan)">#tf_기술지원</span> 채널로</span>
+                </li>
+            </ul>
+
+            <div class="highlight-strip reveal" style="margin-top: clamp(0.5rem, 1.5vh, 1rem); border-left-color: var(--accent-cyan); background: linear-gradient(90deg, rgba(56,189,248,0.1) 0%, rgba(124,106,255,0.05) 100%);">
+                &#x1F4D6; 셀프로 몇 개 만들어보고, 업무에 적용하기 전에 CTO의 가이드라인을 꼭 읽으세요<br>
+                <span style="font-family: var(--font-mono); font-size: var(--small-size); color: var(--accent-cyan); word-break: break-all;">pages.nimbleneuron.dev/guidelines/vibe-coding-guidelines.html</span>
+            </div>
+        </div>
+        <span class="slide-number">14 / 16</span>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 15: NEXT STEPS / ROADMAP
+         =========================================== -->
+    <section class="slide" aria-label="다음 단계">
+        <div class="slide-content">
+            <div class="section-tag reveal">What's Next</div>
+            <h2 class="reveal">오늘 이후에 해볼 것들</h2>
+
+            <div class="roadmap">
+                <div class="roadmap-item current reveal">
+                    <span class="roadmap-level beginner">오늘</span>
+                    <span><strong style="color:var(--text-primary)">CLI 설치 &rarr; 발표자료 &rarr; 웹앱 &rarr; Coolify 배포</strong> &#x2705;</span>
+                </div>
+                <div class="roadmap-item reveal">
+                    <span class="roadmap-level intermediate">혼자 도전</span>
+                    <span>셀프로 몇 개 만들어보기 &mdash; Pages 또는 Coolify로 배포</span>
+                </div>
+                <div class="roadmap-item reveal">
+                    <span class="roadmap-level intermediate">가이드라인</span>
+                    <span>CTO 바이브 코딩 가이드라인 읽기 &rarr; <span style="font-family:var(--font-mono);font-size:var(--small-size);color:var(--accent-cyan)">/사내검수</span> <span style="font-family:var(--font-mono);font-size:var(--small-size);color:var(--accent-cyan)">/배포전점검</span> 활용</span>
+                </div>
+                <div class="roadmap-item reveal">
+                    <span class="roadmap-level advanced">업무 적용</span>
+                    <span>업무 도구 직접 만들기 &mdash; 막히면 <span style="font-family:var(--font-mono);font-size:var(--small-size);color:var(--accent-cyan)">#tf_기술지원</span></span>
+                </div>
+            </div>
+
+            <div class="callout reveal" style="margin-top: clamp(0.75rem, 2vh, 1.5rem);">
+                막히면 Claude에게 물어보세요. 그게 핵심입니다.
+            </div>
+        </div>
+        <span class="slide-number">15 / 16</span>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 16: Q&A / END
+         =========================================== -->
+    <section class="slide end-slide" aria-label="Q&A">
+        <div class="aurora-blob" style="width: 350px; height: 350px; background: rgba(124,106,255,0.2); top: 20%; left: 10%; animation-delay: -2s;"></div>
+        <div class="aurora-blob" style="width: 280px; height: 280px; background: rgba(56,189,248,0.15); bottom: 15%; right: 10%; animation-delay: -7s;"></div>
+
+        <div class="slide-content">
+            <div class="title-badge reveal">
+                <span>Q &amp; A</span>
+            </div>
+            <h1 class="reveal"><span class="gradient-text">질문 &amp; 답변</span></h1>
+            <p class="title-sub reveal" style="max-width: min(80vw, 500px);">
+                계정 발급 신청은 세미나 후 안내 드리겠습니다.<br>
+                궁금한 점은 편하게 질문해 주세요.
+            </p>
+        </div>
+        <span class="slide-number">16 / 16</span>
+    </section>
+
+    </div><!-- /app-content -->
+
+    <!-- ===========================================
+       JAVASCRIPT: GOOGLE SSO AUTH GATE
+       =========================================== -->
+    <script>
+        const ALLOWED_DOMAIN = 'nimbleneuron.com';
+        const GOOGLE_CLIENT_ID = '787659171181-tc4bbamekrmm2btpp3up5n4eo4lhhqcq.apps.googleusercontent.com';
+        const SESSION_KEY = 'nn_seminar_auth';
+        let tokenClient = null;
+
+        /* --- OAuth2 popup flow: user can pick any account --- */
+        function startGoogleLogin() {
+            if (!tokenClient) {
+                document.getElementById('authError').textContent = 'Google SDK 로딩 중... 잠시 후 다시 시도해주세요.';
+                document.getElementById('authError').classList.add('show');
+                return;
+            }
+            tokenClient.requestAccessToken({ prompt: 'select_account' });
+        }
+
+        async function handleTokenResponse(tokenResponse) {
+            if (!tokenResponse || !tokenResponse.access_token) return;
+            try {
+                // Fetch user info with the access token
+                const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+                    headers: { 'Authorization': 'Bearer ' + tokenResponse.access_token }
+                });
+                const user = await res.json();
+                const email = user.email || '';
+                const hd = user.hd || '';
+
+                if (hd === ALLOWED_DOMAIN || email.endsWith('@' + ALLOWED_DOMAIN)) {
+                    sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+                        email: email,
+                        name: user.name || '',
+                        ts: Date.now()
+                    }));
+                    unlockContent();
+                } else {
+                    document.getElementById('authError').textContent =
+                        '@nimbleneuron.com 계정만 접근할 수 있습니다. (' + email + ')';
+                    document.getElementById('authError').classList.add('show');
+                }
+            } catch (e) {
+                document.getElementById('authError').textContent = '인증 중 오류가 발생했습니다.';
+                document.getElementById('authError').classList.add('show');
+            }
+        }
+
+        function unlockContent() {
+            document.getElementById('authGate').classList.add('hidden');
+            document.getElementById('appContent').classList.add('authed');
+            if (!window._presentationInit) {
+                window._presentationInit = true;
+                new SlidePresentation();
+            }
+        }
+
+        function checkSession() {
+            try {
+                const session = JSON.parse(sessionStorage.getItem(SESSION_KEY));
+                if (session && session.email && (Date.now() - session.ts) < 8 * 60 * 60 * 1000) {
+                    return true;
+                }
+            } catch(e) {}
+            return false;
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (checkSession()) {
+                unlockContent();
+                return;
+            }
+            // Initialize OAuth2 token client when GIS loads
+            const initGsi = () => {
+                if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+                    setTimeout(initGsi, 100);
+                    return;
+                }
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: GOOGLE_CLIENT_ID,
+                    scope: 'email profile',
+                    callback: handleTokenResponse,
+                    hint: '',
+                });
+            };
+            initGsi();
+        });
+    </script>
+
+    <!-- ===========================================
+       JAVASCRIPT: SLIDE PRESENTATION CONTROLLER
+       =========================================== -->
+    <script>
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.isScrolling = false;
+                this.touchStartY = 0;
+
+                this.setupIntersectionObserver();
+                this.setupKeyboardNav();
+                this.setupTouchNav();
+                this.setupWheelNav();
+                this.setupProgressBar();
+                this.setupNavDots();
+
+                // Activate first slide
+                this.slides[0].classList.add('visible');
+            }
+
+            /* --- Intersection Observer: triggers .visible class --- */
+            setupIntersectionObserver() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                            // Update current slide index
+                            const idx = Array.from(this.slides).indexOf(entry.target);
+                            if (idx !== -1) {
+                                this.currentSlide = idx;
+                                this.updateNavDots();
+                                this.updateProgressBar();
+                            }
+                        }
+                    });
+                }, { threshold: 0.5 });
+
+                this.slides.forEach(slide => observer.observe(slide));
+            }
+
+            /* --- Keyboard Navigation --- */
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    switch(e.key) {
+                        case 'ArrowDown':
+                        case 'ArrowRight':
+                        case ' ':
+                        case 'PageDown':
+                            e.preventDefault();
+                            this.goToSlide(this.currentSlide + 1);
+                            break;
+                        case 'ArrowUp':
+                        case 'ArrowLeft':
+                        case 'PageUp':
+                            e.preventDefault();
+                            this.goToSlide(this.currentSlide - 1);
+                            break;
+                        case 'Home':
+                            e.preventDefault();
+                            this.goToSlide(0);
+                            break;
+                        case 'End':
+                            e.preventDefault();
+                            this.goToSlide(this.slides.length - 1);
+                            break;
+                    }
+                });
+            }
+
+            /* --- Touch / Swipe Support --- */
+            setupTouchNav() {
+                document.addEventListener('touchstart', (e) => {
+                    this.touchStartY = e.touches[0].clientY;
+                }, { passive: true });
+
+                document.addEventListener('touchend', (e) => {
+                    const deltaY = this.touchStartY - e.changedTouches[0].clientY;
+                    if (Math.abs(deltaY) > 50) {
+                        if (deltaY > 0) {
+                            this.goToSlide(this.currentSlide + 1);
+                        } else {
+                            this.goToSlide(this.currentSlide - 1);
+                        }
+                    }
+                }, { passive: true });
+            }
+
+            /* --- Mouse Wheel Navigation --- */
+            setupWheelNav() {
+                let wheelTimeout;
+                document.addEventListener('wheel', (e) => {
+                    if (this.isScrolling) return;
+                    clearTimeout(wheelTimeout);
+                    wheelTimeout = setTimeout(() => {
+                        if (Math.abs(e.deltaY) > 30) {
+                            this.isScrolling = true;
+                            if (e.deltaY > 0) {
+                                this.goToSlide(this.currentSlide + 1);
+                            } else {
+                                this.goToSlide(this.currentSlide - 1);
+                            }
+                            setTimeout(() => { this.isScrolling = false; }, 800);
+                        }
+                    }, 50);
+                }, { passive: true });
+            }
+
+            /* --- Navigate to specific slide --- */
+            goToSlide(index) {
+                if (index < 0 || index >= this.slides.length) return;
+                this.currentSlide = index;
+                this.slides[index].scrollIntoView({ behavior: 'smooth' });
+                this.updateNavDots();
+                this.updateProgressBar();
+            }
+
+            /* --- Progress Bar --- */
+            setupProgressBar() {
+                this.progressBar = document.getElementById('progressBar');
+                this.updateProgressBar();
+            }
+
+            updateProgressBar() {
+                if (!this.progressBar) return;
+                const progress = ((this.currentSlide + 1) / this.slides.length) * 100;
+                this.progressBar.style.width = progress + '%';
+            }
+
+            /* --- Navigation Dots --- */
+            setupNavDots() {
+                const container = document.getElementById('navDots');
+                if (!container) return;
+
+                this.slides.forEach((_, i) => {
+                    const dot = document.createElement('button');
+                    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+                    dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
+                    dot.addEventListener('click', () => this.goToSlide(i));
+                    container.appendChild(dot);
+                });
+
+                this.navDotElements = container.querySelectorAll('.nav-dot');
+            }
+
+            updateNavDots() {
+                if (!this.navDotElements) return;
+                this.navDotElements.forEach((dot, i) => {
+                    dot.classList.toggle('active', i === this.currentSlide);
+                });
+            }
+        }
+
+        // NOTE: SlidePresentation is initialized by the auth gate (unlockContent)
+        // after successful Google SSO login, not on DOMContentLoaded.
+    </script>
+</body>
+</html>
