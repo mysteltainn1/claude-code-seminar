@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Claude Code CLI로 나만의 프로그램 만들기 — Nimble Neuron AI 세미나</title>
 
-    <!-- Google Identity Services (OAuth2 token flow) -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-
     <!-- Fonts: Bricolage Grotesque (display) + Noto Sans KR (Korean body) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -796,107 +793,9 @@
             flex-shrink: 0;
             font-size: clamp(0.9rem, 1.3vw, 1.1rem);
         }
-        /* ===========================================
-           AUTH GATE — Google SSO Login Screen
-           =========================================== */
-        .auth-gate {
-            position: fixed;
-            inset: 0;
-            z-index: 99999;
-            background: var(--gradient-bg);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: clamp(1rem, 3vw, 2rem);
-        }
-        .auth-gate::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background-image:
-                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
-            background-size: clamp(30px, 4vw, 60px) clamp(30px, 4vw, 60px);
-            pointer-events: none;
-        }
-        .auth-gate.hidden { display: none; }
-        .auth-gate h1 {
-            font-family: var(--font-display);
-            font-size: clamp(1.4rem, 4vw, 2.8rem);
-            font-weight: 800;
-            text-align: center;
-            position: relative;
-        }
-        .auth-gate .auth-sub {
-            font-size: var(--body-size);
-            color: var(--text-muted);
-            text-align: center;
-            position: relative;
-        }
-        .auth-gate .auth-btn-wrap {
-            position: relative;
-            margin-top: clamp(0.5rem, 1.5vw, 1rem);
-        }
-        .auth-gate .google-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            background: #fff;
-            color: #1a1a1a;
-            border: none;
-            border-radius: 24px;
-            padding: clamp(10px, 1.5vw, 14px) clamp(20px, 3vw, 32px);
-            font-family: var(--font-body);
-            font-size: clamp(0.85rem, 1.3vw, 1rem);
-            font-weight: 500;
-            cursor: pointer;
-            transition: box-shadow 0.2s ease, transform 0.15s ease;
-        }
-        .auth-gate .google-btn:hover {
-            box-shadow: 0 4px 20px rgba(255,255,255,0.15);
-            transform: translateY(-1px);
-        }
-        .auth-gate .google-btn svg {
-            width: 20px;
-            height: 20px;
-            flex-shrink: 0;
-        }
-        .auth-gate .auth-error {
-            font-size: var(--small-size);
-            color: #ef4444;
-            position: relative;
-            display: none;
-        }
-        .auth-gate .auth-error.show { display: block; }
-
-        /* Hide presentation content until authenticated */
-        .app-content { display: none; }
-        .app-content.authed { display: block; }
     </style>
 </head>
 <body>
-    <!-- ===========================================
-         AUTH GATE — Blocks content until Google SSO
-         =========================================== -->
-    <div class="auth-gate" id="authGate">
-        <div class="aurora-blob" style="width: 350px; height: 350px; background: rgba(124,106,255,0.2); top: 15%; left: 10%; animation-delay: 0s;"></div>
-        <div class="aurora-blob" style="width: 280px; height: 280px; background: rgba(56,189,248,0.15); bottom: 20%; right: 10%; animation-delay: -5s;"></div>
-
-        <h1><span class="gradient-text">Nimble Neuron</span> AI Seminar</h1>
-        <p class="auth-sub">@nimbleneuron.com 계정으로 로그인해주세요</p>
-        <div class="auth-btn-wrap">
-            <button class="google-btn" id="googleSignInBtn" onclick="startGoogleLogin()">
-                <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                Google로 로그인
-            </button>
-        </div>
-        <p class="auth-error" id="authError">@nimbleneuron.com 계정만 접근할 수 있습니다.</p>
-    </div>
-
-    <!-- ===========================================
-         PRESENTATION CONTENT (hidden until auth)
-         =========================================== -->
     <div class="app-content" id="appContent">
 
     <!-- Progress bar -->
@@ -1493,95 +1392,6 @@
     </div><!-- /app-content -->
 
     <!-- ===========================================
-       JAVASCRIPT: GOOGLE SSO AUTH GATE
-       =========================================== -->
-    <script>
-        const ALLOWED_DOMAIN = 'nimbleneuron.com';
-        const GOOGLE_CLIENT_ID = '787659171181-tc4bbamekrmm2btpp3up5n4eo4lhhqcq.apps.googleusercontent.com';
-        const SESSION_KEY = 'nn_seminar_auth';
-        let tokenClient = null;
-
-        /* --- OAuth2 popup flow: user can pick any account --- */
-        function startGoogleLogin() {
-            if (!tokenClient) {
-                document.getElementById('authError').textContent = 'Google SDK 로딩 중... 잠시 후 다시 시도해주세요.';
-                document.getElementById('authError').classList.add('show');
-                return;
-            }
-            tokenClient.requestAccessToken({ prompt: 'select_account' });
-        }
-
-        async function handleTokenResponse(tokenResponse) {
-            if (!tokenResponse || !tokenResponse.access_token) return;
-            try {
-                // Fetch user info with the access token
-                const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-                    headers: { 'Authorization': 'Bearer ' + tokenResponse.access_token }
-                });
-                const user = await res.json();
-                const email = user.email || '';
-                const hd = user.hd || '';
-
-                if (hd === ALLOWED_DOMAIN || email.endsWith('@' + ALLOWED_DOMAIN)) {
-                    sessionStorage.setItem(SESSION_KEY, JSON.stringify({
-                        email: email,
-                        name: user.name || '',
-                        ts: Date.now()
-                    }));
-                    unlockContent();
-                } else {
-                    document.getElementById('authError').textContent =
-                        '@nimbleneuron.com 계정만 접근할 수 있습니다. (' + email + ')';
-                    document.getElementById('authError').classList.add('show');
-                }
-            } catch (e) {
-                document.getElementById('authError').textContent = '인증 중 오류가 발생했습니다.';
-                document.getElementById('authError').classList.add('show');
-            }
-        }
-
-        function unlockContent() {
-            document.getElementById('authGate').classList.add('hidden');
-            document.getElementById('appContent').classList.add('authed');
-            if (!window._presentationInit) {
-                window._presentationInit = true;
-                new SlidePresentation();
-            }
-        }
-
-        function checkSession() {
-            try {
-                const session = JSON.parse(sessionStorage.getItem(SESSION_KEY));
-                if (session && session.email && (Date.now() - session.ts) < 8 * 60 * 60 * 1000) {
-                    return true;
-                }
-            } catch(e) {}
-            return false;
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            if (checkSession()) {
-                unlockContent();
-                return;
-            }
-            // Initialize OAuth2 token client when GIS loads
-            const initGsi = () => {
-                if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
-                    setTimeout(initGsi, 100);
-                    return;
-                }
-                tokenClient = google.accounts.oauth2.initTokenClient({
-                    client_id: GOOGLE_CLIENT_ID,
-                    scope: 'email profile',
-                    callback: handleTokenResponse,
-                    hint: '',
-                });
-            };
-            initGsi();
-        });
-    </script>
-
-    <!-- ===========================================
        JAVASCRIPT: SLIDE PRESENTATION CONTROLLER
        =========================================== -->
     <script>
@@ -1735,8 +1545,7 @@
             }
         }
 
-        // NOTE: SlidePresentation is initialized by the auth gate (unlockContent)
-        // after successful Google SSO login, not on DOMContentLoaded.
+        window.addEventListener('DOMContentLoaded', () => new SlidePresentation());
     </script>
 </body>
 </html>
